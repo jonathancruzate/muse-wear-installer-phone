@@ -124,3 +124,7 @@ plus a blue watch badge, same as the watch app, superseding the
 from the built APK matches the approved art; build guards + apksigner
 passed. APK: app/MuseWearInstallerPhone-v1.0.3.apk, SHA-256 `54efb23e0952b157a0b6cf65fbf3cb8f3104ad8f9440f60a05be40b8fb6311b9`.
 Not installed by this handling; ready to install.
+
+## Screenshots
+
+![Muse Wear Installer (phone) setup screen](docs/screenshots/wear-installer-phone-setup.jpg)
