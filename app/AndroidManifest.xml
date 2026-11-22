@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.jonathancruzate.metamusewearinstallerphone">
+
+    <!-- Muse Wear Installer Phone: the standalone phone half of the
+         Muse Wear Installer lane (split out of Muse Device
+         Assistance v1.13 by Jonathan's order, 2026-11-11 — "Make
+         this a separate phone apk"). It polls the Muse Worker's
+         command channel as device "wear-installer" (the wearbridge
+         lane), accepts only the wear_install_face template, downloads
+         the face APK with streaming SHA-256 verification, relays it
+         to Muse Wear Installer on the paired watch over the Wearable
+         Data Layer, and returns the watch's terminal verdict as the
+         command result. Worker base + secret are entered on-device
+         in the setup screen — never hardcoded, never logged. -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- specialUse, per the fleet lesson (Device Assistance v1.4.2):
+         dataSync carries a ~6 h platform time budget that a 24/7
+         bridge always exhausts, and exhaustion crash-looped that
+         service. specialUse has no such budget. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:allowBackup="false"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:theme="@android:style/Theme.Material">
+
+        <!-- GMS version for the staged play-services-wearable set;
+             the integer lives in res/values/gms.xml (read from the
+             basement AAR — this raw toolchain does no AAR resource
+             merging). -->
+        <meta-data android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- The command lane: polls the Worker as device
+             "wear-installer", executes wear_install_face, posts
+             results + wearbridge reports. -->
+        <service android:name=".CommandService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Continuous owner-device bridge: polls the owner's server for watch-face install commands addressed to this phone, relays verified APKs to the owner's paired Wear OS watch, and reports the install verdict. It must run 24/7; no time-budgeted foreground-service type (dataSync ~6 h) can hold it." />
+        </service>
+
+        <!-- Receives Muse Wear Installer's job status messages over
+             the Wearable Data Layer (paths under
+             /muse-wear-installer). -->
+        <service android:name=".WearStatusService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data android:scheme="wear" android:host="*"
+                    android:pathPrefix="/muse-wear-installer" />
+            </intent-filter>
+        </service>
+
+        <receiver android:name=".BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+</manifest>
